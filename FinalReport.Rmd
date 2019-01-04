@@ -1,6 +1,8 @@
 ---
 title: "FinalReport"
-output: pdf_document
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -8,7 +10,133 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Final Report GIS 
-## R Markdown
+
+## Part 1. Mapping and Cartography
+
+## Part 2. Spatial Analysis Methodologies
+
+In this assignment I used R to perform the spatial function available, as I thought it was faster to perform combination of spatial function and statistical analysis in R - which R is initially built for. 
+
+#### Data Preparation
+
+First of all, we processed the data for analysis. The raw data downloaded from google maps is .KML-formatted. I read the data using `readOGR` function to read the points and lines layer separately (as the function cannot handle layers with mixture of points and lines). I used `writeOGR` function to write the objects to geoJSON file, then convert the trace and points as spatial object in R with function `geojson_read`. 
+
+The spatial functions to be used in this assignment are mainly functions in `sf` package. So, I converted the spatial object from `sp` data type into `sf` object, using the function `st_as_sf`. I performed same preparation workflow to every data used in this analysis, by transforming from shapefile, .KML, or .csv to `sf` object. 
+
+#### 1. Vector length
+In order to measure the length of each `LINESTRING` from trace data according to its geometry data with its CRS projection, I performed `st_length` function, which return the Euclidean distance in meter unit. Lastly, I summed up the length of all records with `sum`.
+
+#### 2. Line, Point Buffer and Intersect
+I transformed the coordinates of `sf` lines and points object to BNG to perform buffer in meter units using `st_buffer`. Then, I intersected the buffered lines with the tube station location with `st_intersects` which return matrix of binary value whether the two geometries intersecting or not. I summed the matrix which return the number of points where intersection is `TRUE`. 
+
+We can also perform function `st_intersection` which return the geometry object intersected. However, this function takes more time to create geometry object. As our task is only to calculate number of intersection yielded and not for visualizing the intersection, I chose `st_intersects`. 
+
+#### 3. Sum, Attribute, and Point Buffer 
+I created `sf` object from .csv data of location based on longitude and latitude value with EPSG:4326 coordinate system, then transformed to BNG in order to perform `st_buffer` in meter unit. I performed `st_intersects` to get list of locations intersecting the route. Some locations are duplicated as it may passed by the route more than once, so I performed `unique` to update the list. Based on the list I got list of score for each location. Lastly, I summed up the score by performing the basic function of `sum`. 
+
+#### 4. Max/Min, Line/Polygon Intersect
+I combined the cleaned boundary data which has been converted from shapefile to `sf` object, with London statistics by using `inner_join` function. Then, I used `st_intersects` to get the list of ward ID's passed. Based on the list, I selected the attribute data and used function of `min` and `max` to identify the wards with lowest and highest rates. 
+
+#### 5. Average, Line/Polygon Intersect
+Based on the list of passed wards resulted from point 4 above, I selected the attribute data to be calculated (male and female life expectancy), and performed basic function of `mean` to get the average value.   
+
+#### 6. Point Pattern Analysis
+In order to identify cluster of from the points location, I performed analysis with Ripley's K and DBSCAN. For Ripley K's analysis, I set London as window boundary, so `st_union` was applied to merge all wards. I converted to `sp` object with `as_Spatial` function as `spatstat` package can only handle `sp` object. I created hunt location `ppp` object, and plot the Ripley K's value. 
+
+For DBSCAN analysis, I performed `fpc::dbscan` function with eps = 2000 m, MinPts = 4, which return the three cluster identified. For visualization, I used `ddply` function in the `plyr` package to define the convex hull of each cluster group. The points and convex hull was then visualized with `ggmap`.
+
+## Part 3. Mini-Research Project: AirBnB Explorer Tool
+
+### 1. Introduction
+Online sharing economy for short-term lettings has been recognized to contribute to the tourism growth in UK recently. Airbnb as the market leaders for online listing platform for short-term lettings is acknowledged to give positive impacts for accommodation provision to the tourists. 
+
+With the promising market penetration of Airbnb and its impacts to the tourism, it is important to provide the tourists with more comprehensive information that could support their staying experience. One of the  important information for tourists are how easy it is to access the location of staying from public transportation nodes. This is related to the nature of tourist that will be pleased to feel convenient  to reach the destination with all the luggage after long travel, as well as how easy it is to access the tourism destination during the trip. Another useful information is regarding safety and secure feeling during the stay.
+
+This project aims to provide a tool to explore the Airbnb with information of price, indicator of accessibility to public transportation nodes particularly station, and indicator of route safety to walk from station to the Airbnb location. For preliminary study, we will narrow our project scope to analyse the data in Camden borough only. 
+
+### 2. Data
+
+#### 2.1. Airbnb data
+In this project we used Airbnb listings data in London which has the summary information regarding room type, price, reviews, availability, neighborhood area and location  (<http://insideairbnb.com/get-the-data.html>). We only used ID, price, latitude and longitude data. 
+
+#### 2.2. Station data
+We used station location data from OpenStreetMap (<http://download.geofabrik.de/europe/great-britain/england/greater-london.html>), particularly from file `gis_osm_transport_free_1`. We only selected the data of `railway_station`. 
+
+#### 2.3. Road data
+We used road shapefile data from  We used the data from OpenStreetMap data, particularly from file `gis_osm_roads_free_1.shp` which includes primary, secondary, tertiary, residential, and pedestrian road data. 
+
+#### 2.4. Crime data
+We used on-street crime records data in Camden, which has information of crime types, date, and location (<https://opendata.camden.gov.uk/Crime-and-Criminal-Justice/On-Street-Crime-In-Camden/qeje-7ve7>). In this project, we will only used the crime records in 2018.
+
+#### 2.5. Borough boundary data
+In order to filter the data in Camden borough only, we used the 2011 boundary data from The Office for National Statistics (ONS) Open Geography Portal (<http://geoportal.statistics.gov.uk/>). 
+
+#### 2.6. Data Preparation
+First of all, we prepared the data in `sf` types, for further analysis using several geometry operation. We intersected the airbnb data and road data with Camden boundary data to filter data only in Camden. 
+```{r}
+## Map of station data, airbnb data, road network data, crime data in camden
+```
+
+### 3. Methodology and Result
+In this project, basically we will assign each Airbnb location with information of category of price, category of accessibility to the nearest station, and category of route safety. After that, we will develop visualization with Shiny Apps, where user can select criteria of the three categories mentioned above and get map of Airbnb locations that satistfy the selected category. Below is the workflow diagram of this project.   
+
+![Workflow Diagram for Developing Airbnb Explorer Tool](Images/WorkflowDiagram.png) 
+
+#### 3.1. Airbnb Price Statistics
+The price of Airbnb in Camden are quite vary, ranging from OO - OO. The summary statistics and distribution of the price are as the following.
+
+Based on the descriptive statistics of Airbnb data above, we assigned the price into three categories, which are "High" for the price above OOO, "Medium" for the price in between OOO and OOO, and "Low" for the price below OOO. 
+
+#### 3.2. Accessibility to the nearest station
+In order to define the accessibility of Airbnb location to the nearest station, we conducted three steps of work; defining nearest station, identifying shortest walking path, and measuring the travel distance. 
+
+First, we defined the nearest station using the location data of Airbnb and station in Camden. We performed function to calculate the distance of each Airbnb location to all station in Camden with function of `st_distance` from `sf` package, and select the station which has the minimum distance. 
+
+Second, based on the location of Airbnb and its nearest station, we tried to identify the shortest walking path based on the road network data. In order to do this, we used `shp2graph` package and `igraph` package. The `shp2graph` package is used to integrate points to network and to transform spatial network (in this case road network) into graph object. The `igraph` package is used to get the shortest path between any network. (Lu, Binbin et al. 2018).
+
+Using the road data, we tried to confirm connectivity of the road network using the function of `nt.connect` function. The function resulted road network data to be used for analysis. Then, we located the Airbnb and station point location to the network using `points2network` function. In this project, we represented the point to the nearest vertex of the network. The `points2network` also resulted matrix of vertex in the network, along with the list of its coordinates information in the same index.  
+
+With the vertex representation on the network, we converted the network to graph using `nel2igraph` function. After that we applied `get.shortest.paths` function which identifying the shortest path between two vertex, and returning the sequences of vertex being passed by the path.
+
+Refer to the vertex sequences on the path and coordinates information stored from `points2network` function, we tried to get matrix of coordinates of the vertex, in order to create the spatial vector of the path. After getting the list of coordinates, we created linestring using `st_linestring` funtion. Then, we convert the `sfc` to `sf` object by using `st_sf` function. With the `sf` object, we could visualize the shortest walking route path from Airbnb to its nearest station, as well as to calculate the distance by measuring linestring vector length using `st_length` function. 
+
+![Example of shortest walking route from station to Airbnb location](Images/1_station_to_airbnb.png)
+
+With the distance to nearest station calculated for all Airbnb location, we understood that the distance are vary from OO to OO m. Below are the distribution of Airbnb based on its distance to the nearest station. 
+
+Considering the nature of tourist to travel with luggage, we defined the accessibility based on walking distance usually used for assessing public transport accessibility; below 600 m, in between 600 - 1200 m, and more than 1200 m. 
+
+#### 3.3. Route safety 
+Using the `sf` object of walking path resulted from the previous sub-section, we intersected the path with on-street crime data using `st_intersects` from `sf` package. We summed up the number of crime recorded in the route during 2018. 
+
+![Example of shortest walking route from station to Airbnb location with number of crime records](Images/2_with_crime_data.png)
+
+Below are the summary statistics of number of crime recoreded in the waling path between Airbnb and its nearest station, and the distribution of data. Based on the descriptive statistics, we assigned the route safety categories into classes of "High" for the crime records below OOO, "Medium" for the crime records in between OOO and OOO, and "Low" for the crime records more than OOO. 
+
+#### 3.4. Visualization with Shiny app
+Now we have all Airbnb with additional categories information; price category, station accessibility category, and route safety category. Based on this data, we developed interactive visualization tool using Shiny app which user can get information and map of Airbnb based on category they selected. We developed the Shiny app by developing a file of app.R, which includes the UI and the server in the same file. 
+
+First, we defined the UI to have sidebar panel and main panel. The sidebar panel contains three radio buttons to select the category of Price, Access to station, and Walking route safety. This sidebar panel is basically used for getting input of from user regarding the category selected. The main panel is used to render output, which contains leaflet map to show the location of Airbnb selected. 
+
+Next, we defined server logic required to show the map as output based on user's input. When the Shiny app loaded, it will initially render map of Camden borough with its bounding box. Within the server we created `selected_data` object which is reactive to user input. The `selected_data` is data that being filtered based on three categories from user. 
+
+The server will observe the changes of `selected_data` and has function of `leafletProxy` to change the map rendered based on `selected_data`. If the `selected data` has no data filtered, the map will have no markers by applying `clearMarkers` function. If `selected data` has data filtered, it will perform `clearMarkers` first to clean the previous Airbnb points rendered, and draw markers via `addCircleMarkers` to show the Airbnb with selected category. When the Airbnb marker is clicked, it will show detail information of its price, nearest station, distance to station, and number of crime recorded in along the route in 2018. 
+
+### 4. Discussion
+In this project, we have limitations regarding category assignment, and shortest path identification. 
+
+We assigned categories only based on descriptive statistics analysis within the Camden scope. We also did not separate the category based on the room type of lettings. This project could be improved if we can conducted further analysis by assigning the category based on the room type and the attribute data behavior compared to its surrounding neighbor. The tool also might be more informative if it could show the position of the attribute data it has in the overall data distribution.  
+
+This project also has limitation on defining shortest path, since some Airbnb has slightly missed vertex to be represented in the road network. This might caused the calculation of distance to nearest station slightly inaccurate. In order to complement the route path information, we can also refer to Google API to request route identification based on two points location. However, requesting all data from the Google API is considered to be expensive in terms of processing time and dealing with the recent API access limitation. 
+
+![Example of misplace vertex representation of Airbnb location on the road network](Images/6_misplaced_vertex.png)
+
+Besides the limitation of this project, we also considered several future potential works. Based on the accessibility and crime on route information combined with the Airbnb data, we could potentially perform deeper spatial analysis such as measuring the correlation between the attributes information, observing how access and safety might influence Airbnb price and how it differs geographically, and spatial cluster analysis. As a tool, this project also can be used for supporting decision making on house buying or renting choices if the data is available.
+
+### 5. Conclusion
+In this project we developed tool to explore Airbnb with other relevant information which is useful for tourist to make decision on where to stay. Three relevant factors are considered to be factor for tourist to make decision; price, access to nearest station, and walking route safety. Not like price information which may be digged in the Airbnb webpage or application itself, information on access to the nearest transportation nodes and walking route safety is rarely being informed. Having all information provided in one platform hopefully beneficial for tourist as user, and useful to support the city to become more tourist friendly city.
+
+## Others ....
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
@@ -18,12 +146,11 @@ When you click the **Knit** button a document will be generated that includes bo
 summary(cars)
 ```
 
-## Including Plots
-
 You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
 plot(pressure)
 ```
+
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
